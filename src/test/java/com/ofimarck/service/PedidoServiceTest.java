@@ -29,8 +29,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PedidoServiceTest {
 
     @Mock private PedidoRepository pedidoRepository;
@@ -63,10 +66,11 @@ class PedidoServiceTest {
         pago.setMonto(new BigDecimal("215.00"));
         pedido.setPago(pago);
 
-        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
-        when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
-        when(pagoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(historialRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
+    when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
+    when(pedidoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(pagoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(historialRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

@@ -38,7 +38,7 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
-                .httpStrictTransportSecurity(hsts -> hsts.enable())
+                .httpStrictTransportSecurity()
         )
         .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

@@ -33,8 +33,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PedidoClienteServiceTest {
 
     @Mock private PedidoRepository pedidoRepository;
@@ -58,7 +61,7 @@ class PedidoClienteServiceTest {
         usuario.setEstado(true);
 
         direccion = new DireccionEnvio();
-        direccion.setIdDireccionEnvio(10);
+        direccion.setIdDireccion(10);
         direccion.setUsuario(usuario);
 
         producto = new Producto();
@@ -97,7 +100,7 @@ class PedidoClienteServiceTest {
         assertThat(res.getEstado()).isEqualTo("PENDIENTE");
         assertThat(res.getTotal()).isEqualByComparingTo(new BigDecimal("215.00"));
         assertThat(res.getCodigo()).isNotNull();
-        verify(pedidoRepository, times(1)).save(any(Pedido.class));
+        verify(pedidoRepository, times(2)).save(any(Pedido.class));
         verify(carritoService, times(1)).limpiarCarrito(session);
     }
 

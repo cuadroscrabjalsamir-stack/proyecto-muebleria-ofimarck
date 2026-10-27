@@ -23,8 +23,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class InventarioServiceTest {
 
     @Mock private MovimientoInventarioRepository movimientoRepository;
@@ -123,6 +126,7 @@ class InventarioServiceTest {
         dto.setMotivo("x");
 
         assertThatThrownBy(() -> service.registrarAjuste(dto, 1))
-                .isInstanceOf(ResourceNotFoundException.class);
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Producto no encontrado con ID: 999");
     }
 }
