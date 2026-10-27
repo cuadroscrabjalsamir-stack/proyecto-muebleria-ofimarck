@@ -66,11 +66,7 @@ public class AuthController {
             Usuario usuario = (Usuario) session.getAttribute("USUARIO_LOGUEADO");
             return ResponseEntity.ok(usuario);
         }
-        // Retornar información del administrador por defecto para navegación del panel
-        Optional<Usuario> adminOpt = usuarioService.buscarPorCorreo("admin@ofimarck.pe");
-        return adminOpt.<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(
-                        () -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "No autenticado")));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "No autenticado"));
     }
 
     @PostMapping("/logout")

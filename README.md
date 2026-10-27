@@ -23,7 +23,7 @@ Plataforma integral de comercio electrónico y gestión de inventarios para **Mu
 - **Datos Semilla:**
   - Roles (`ADMIN`, `CLIENTE`), categorías (`Salas`, `Comedores`, `Dormitorios`, `Oficina`), catálogo oficial de productos e imágenes del proyecto, usuario administrador y pedido de demostración.
 
-### 2. Backend (Java 17 / Spring Boot 3.2.5)
+### 2. Backend (Java 17 / Spring Boot 3.2.12)
 - **Arquitectura:** MVC por capas (Controlador -> Servicio -> Repositorio / DAO -> Dominio).
 - **Seguridad:** Spring Security con codificación de contraseñas mediante `BCryptPasswordEncoder`.
 - **Módulo de Reportes:**

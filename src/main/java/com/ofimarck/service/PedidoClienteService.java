@@ -7,17 +7,26 @@ import com.ofimarck.dto.response.PedidoResponse;
 import com.ofimarck.exception.BadRequestException;
 import com.ofimarck.exception.ResourceNotFoundException;
 import com.ofimarck.repository.*;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class PedidoClienteService {
+
+    private static final Logger log = LoggerFactory.getLogger(PedidoClienteService.class);
 
     private final PedidoRepository pedidoRepository;
     private final DireccionEnvioRepository direccionRepository;
@@ -39,6 +48,16 @@ public class PedidoClienteService {
 
     @Transactional
     public PedidoResponse crearPedido(Integer idUsuario, PedidoRequest request, HttpSession session) {
+        String correlationId = MDC.get("correlationId");
+        if (correlationId == null) {
+            correlationId = UUID.randomUUID().toString();
+            MDC.put("correlationId", correlationId);
+        }
+        log.info("crearPedido inicio correlationId={} idUsuario={}", correlationId, idUsuario);
+
+        Preconditions.checkArgument(idUsuario != null && idUsuario > 0, "El id de usuario es obligatorio");
+        Preconditions.checkArgument(request != null, "El pedido no puede ser nulo");
+
         Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
 
@@ -80,11 +99,13 @@ public class PedidoClienteService {
         pedido.setCostoEnvio(costoEnvio);
         pedido.setTotal(total);
         pedido.setEstado("PENDIENTE");
-        pedido.setObservaciones("Pedido desde carrito de compras");
+        String referencia = StringUtils.defaultIfBlank(request.getReferencia(), null);
+        pedido.setObservaciones("Pedido desde carrito de compras" + (referencia != null ? " | ref: " + referencia : ""));
         pedido = pedidoRepository.save(pedido);
 
         // Crear detalles
-        for (CarritoItem item : carrito.getItems()) {
+        List<CarritoItem> items = ImmutableList.copyOf(carrito.getItems());
+        for (CarritoItem item : items) {
             Producto producto = productoRepository.findById(item.getIdProducto())
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + item.getIdProducto()));
 
@@ -95,17 +116,16 @@ public class PedidoClienteService {
             detalle.setCantidad(item.getCantidad());
             detalle.setPrecioUnitario(item.getPrecioUnitario());
             detalle.setSubtotal(item.getSubtotal());
-            // detalleRepository is not injected but we can save via cascade from Pedido
             pedido.getDetalles().add(detalle);
         }
 
         // Crear pago pendiente
         Pago pago = new Pago();
         pago.setPedido(pedido);
-        pago.setMetodo(request.getMetodoPago());
+        pago.setMetodo(StringUtils.defaultIfBlank(request.getMetodoPago(), "CONTRA_ENTREGA"));
         pago.setEstado("PENDIENTE");
         pago.setMonto(total);
-        pago.setReferencia(request.getReferencia());
+        pago.setReferencia(referencia);
         pedido.setPago(pago);
 
         // Crear envío pendiente
@@ -119,6 +139,10 @@ public class PedidoClienteService {
 
         // Limpiar carrito después de crear el pedido
         carritoService.limpiarCarrito(session);
+
+        log.info("crearPedido fin correlationId={} pedidoId={} codigo={} total={}",
+                correlationId, pedido.getIdPedido(), pedido.getCodigo(), total);
+        MDC.clear();
 
         return new PedidoResponse(
                 pedido.getIdPedido(),

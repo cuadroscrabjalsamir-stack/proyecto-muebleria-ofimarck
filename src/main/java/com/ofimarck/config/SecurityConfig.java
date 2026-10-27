@@ -8,6 +8,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,25 +27,39 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**")
-            )
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.disable())
-                .httpStrictTransportSecurity(hsts -> hsts.disable())
-            )
-            .sessionManagement(session -> session
+        // CSRF compatible con APIs SPA/fetch (token via cookie X-XSRF-TOKEN)
+        CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName("_csrf");
+        http.csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(requestHandler)
+                .ignoringRequestMatchers("/api/auth/**")
+        )
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .httpStrictTransportSecurity(hsts -> hsts.enable())
+        )
+        .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-            )
-            .authorizeHttpRequests(auth -> auth
+        )
+        .authorizeHttpRequests(auth -> auth
+                // Autenticación pública
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").permitAll()
-                .requestMatchers("/api/**").permitAll()
-                .requestMatchers("/", "/admin", "/admin/**", "/css/**", "/js/**", "/img/**", "/*.html", "/favicon.ico").permitAll()
-                .anyRequest().permitAll()
-            );
+                // Catálogo público
+                .requestMatchers("/api/productos/**", "/api/categorias/**").permitAll()
+                // Administración: solo rol ADMIN
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // Módulo cliente: solo CLIENTE o ADMIN
+                .requestMatchers("/api/pedidos/**", "/api/carrito/**", "/api/direcciones/**",
+                        "/api/pagos/**").hasAnyRole("CLIENTE", "ADMIN")
+                // Resto de la API autenticada
+                .requestMatchers("/api/**").authenticated()
+                // Vistas Thymeleaf
+                .requestMatchers("/", "/admin", "/admin/**", "/usuario", "/usuario/**",
+                        "/css/**", "/js/**", "/img/**", "/*.html", "/favicon.ico").permitAll()
+                .anyRequest().authenticated()
+        );
 
         return http.build();
     }
@@ -51,10 +67,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(List.of("http://localhost:*", "https://*.onrender.com"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
