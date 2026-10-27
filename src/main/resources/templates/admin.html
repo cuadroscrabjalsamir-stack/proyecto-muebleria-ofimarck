@@ -1128,6 +1128,7 @@
                 const tr = document.createElement('tr');
                 const badgePedido = getBadgePedido(p.estado);
                 const badgePago = p.pago ? (p.pago.estado === 'APROBADO' ? 'bg-success' : (p.pago.estado === 'PENDIENTE' ? 'bg-warning text-dark' : 'bg-danger')) : 'bg-secondary';
+                const badgeEnvio = p.envio ? (p.envio.estado === 'ENTREGADO' ? 'bg-success' : (p.envio.estado === 'EN_TRANSITO' ? 'bg-info text-dark' : 'bg-warning text-dark')) : 'bg-secondary';
 
                 tr.innerHTML = `
                     <td class="fw-bold">${p.codigo}</td>
@@ -1161,10 +1162,15 @@
         }
 
         async function verDetallePedido(id) {
-            const res = await fetch(`${API_BASE}/admin/pedidos/${id}`);
-            const p = await res.json();
-            const resHist = await fetch(`${API_BASE}/admin/pedidos/${id}/historial`);
-            const historial = await resHist.json();
+            try {
+                const res = await fetch(`${API_BASE}/admin/pedidos/${id}`);
+                if (!res.ok) {
+                    showToast('No se pudo cargar el detalle del pedido', true);
+                    return;
+                }
+                const p = await res.json();
+                const resHist = await fetch(`${API_BASE}/admin/pedidos/${id}/historial`);
+                const historial = resHist.ok ? await resHist.json() : [];
 
             let itemsHtml = '';
             if (p.detalles && p.detalles.length > 0) {
@@ -1281,9 +1287,13 @@
             document.getElementById('modalPedidoContent').innerHTML = content;
             document.getElementById('modalPedidoTitle').textContent = `Pedido #${p.codigo}`;
             modalPedidoBS.show();
+        } catch (e) {
+            console.error(e);
+            showToast('Error al cargar el detalle del pedido', true);
         }
+    }
 
-        async function guardarEstadoYEnvio(id) {
+    async function guardarEstadoYEnvio(id) {
             const nuevoEstadoPedido = document.getElementById('update-pedido-estado').value;
             const comentario = document.getElementById('update-pedido-comentario').value.trim();
             const nuevoEstadoEnvio = document.getElementById('update-envio-estado').value;

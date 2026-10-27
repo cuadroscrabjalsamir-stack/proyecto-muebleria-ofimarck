@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración — Mueblería Ofimarck</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --ofimarck-primary: #1e3a8a;
+            --ofimarck-secondary: #0f172a;
+            --ofimarck-accent: #d97706;
+            --ofimarck-bg: #f8fafc;
+            --sidebar-width: 260px;
+        }
+        body {
+            background-color: var(--ofimarck-bg);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+        }
+        #sidebar {
+            width: var(--sidebar-width);
+            min-height: 100vh;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #cbd5e1;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        #sidebar .nav-link {
+            color: #94a3b8;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            margin: 0.2rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        #sidebar .nav-link.active {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+        #content {
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem 2rem;
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+        }
+        .stat-card {
+            border-left: 4px solid var(--ofimarck-primary);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        .stat-card.alert-card {
+            border-left-color: #ef4444;
+        }
+        .stat-card.success-card {
+            border-left-color: #10b981;
+        }
+        .stat-card.warning-card {
+            border-left-color: #f59e0b;
+        }
+        .table img.product-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .badge-status {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            border-radius: 20px;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1090;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar de Navegación -->
+    <nav id="sidebar">
+        <div class="p-3 border-bottom border-secondary">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-box-seam-fill text-warning fs-3"></i>
+                <div>
+                    <h5 class="m-0 text-white fw-bold">Ofimarck</h5>
+                    <small class="text-secondary">Panel Administrador</small>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showSection('sec-dashboard')">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-productos')">
+                        <i class="bi bi-boxes"></i> Productos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-categorias')">
+                        <i class="bi bi-tags"></i> Categorías
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-inventario')">
+                        <i class="bi bi-arrow-left-right"></i> Inventario & Kardex
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-pedidos')">
+                        <i class="bi bi-cart-check"></i> Pedidos & Envíos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-pagos')">
+                        <i class="bi bi-credit-card-2-front"></i> Validación de Pagos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-reportes')">
+                        <i class="bi bi-file-earmark-bar-graph"></i> Reportes & Exportación
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-usuarios')">
+                        <i class="bi bi-people"></i> Usuarios & Roles
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="p-3 mt-auto border-top border-secondary position-absolute bottom-0 w-100">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div class="text-truncate">
+                    <small class="d-block text-white fw-bold" id="sidebar-user-name">Administrador</small>
+                    <small class="text-secondary" id="sidebar-user-role">ADMIN</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-danger w-100" onclick="cerrarSesion()">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main id="content">
+        <!-- Barra Superior -->
+        <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+            <div>
+                <h3 class="fw-bold text-dark m-0" id="section-title">Dashboard Gerencial</h3>
+                <small class="text-muted">Sistema Web de Comercio Electrónico y Gestión de Inventarios</small>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-success-subtle text-success border border-success d-flex align-items-center gap-1">
+                    <i class="bi bi-circle-fill" style="font-size: 8px;"></i> Servidor Online (PostgreSQL 18 + Spring Boot)
+                </span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="refrescarDatosActuales()">
+                    <i class="bi bi-arrow-clockwise"></i> Actualizar
+                </button>
+            </div>
+        </header>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container">
+            <div id="liveToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body" id="toastMessage">Acción completada con éxito.</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SECCIÓN 1: DASHBOARD ================= -->
+        <section id="sec-dashboard">
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card stat-card success-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted fw-bold">VENTAS DEL MES</small>
+                                <h3 class="fw-bold text-dark m-0 mt-1" id="kpi-ventas">S/ 0.00</h3>
+                            </div>
+                            <div class="text-success fs-1"><i class="bi bi-cash-stack"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card stat-card warning-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted fw-bold">PEDIDOS PENDIENTES</small>
+                                <h3 class="fw-bold text-dark m-0 mt-1" id="kpi-pedidos">0</h3>
+                            </div>
+                            <div class="text-warning fs-1"><i class="bi bi-clock-history"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card stat-card alert-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted fw-bold">ALERTAS DE STOCK</small>
+                                <h3 class="fw-bold text-danger m-0 mt-1" id="kpi-stock-alerta">0</h3>
+                            </div>
+                            <div class="text-danger fs-1"><i class="bi bi-exclamation-triangle"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted fw-bold">TOTAL DE PRODUCTOS</small>
+                                <h3 class="fw-bold text-primary m-0 mt-1" id="kpi-total-prod">0</h3>
+                            </div>
+                            <div class="text-primary fs-1"><i class="bi bi-box-seam"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-lg-8">
+                    <div class="card p-4">
+                        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-graph-up text-primary"></i> Tendencia de Ventas (S/)</h5>
+                        <div style="height: 280px;">
+                            <canvas id="chartVentas"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card p-4">
+                        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-pie-chart text-warning"></i> Estado de Inventario</h5>
+                        <div style="height: 280px;">
+                            <canvas id="chartInventario"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas rápidas de inventario -->
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-bold text-dark m-0"><i class="bi bi-bell-fill text-danger"></i> Productos con Stock Crítico</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showSection('sec-inventario')">Ver Inventario Completo</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle m-0" id="table-alertas-dashboard">
+                        <thead class="table-light">
+                            <tr>
+                                <th>SKU</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Stock Actual</th>
+                                <th>Stock Mínimo</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 2: PRODUCTOS ================= -->
+        <section id="sec-productos" style="display: none;">
+            <div class="card p-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div class="d-flex gap-2 flex-grow-1" style="max-width: 500px;">
+                        <input type="text" id="filtro-prod-termino" class="form-control" placeholder="Buscar por SKU o Nombre..." oninput="cargarProductos()">
+                        <select id="filtro-prod-categoria" class="form-select" style="max-width: 180px;" onchange="cargarProductos()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="abrirModalProducto()">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-productos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Imagen</th>
+                                <th>SKU</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Precio (S/)</th>
+                                <th>Stock</th>
+                                <th>Mín.</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 3: CATEGORÍAS ================= -->
+        <section id="sec-categorias" style="display: none;">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Categorías de Mueblería</h5>
+                    <button class="btn btn-primary" onclick="abrirModalCategoria()">
+                        <i class="bi bi-plus-circle"></i> Nueva Categoría
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-categorias">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Slug</th>
+                                <th>Descripción</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 4: INVENTARIO & KARDEX ================= -->
+        <section id="sec-inventario" style="display: none;">
+            <div class="row g-3 mb-4">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold text-dark m-0">Control de Existencias & Trazabilidad</h5>
+                    <button class="btn btn-success" onclick="abrirModalAjuste()">
+                        <i class="bi bi-plus-slash-minus"></i> Registrar Entrada / Ajuste
+                    </button>
+                </div>
+            </div>
+
+            <div class="card p-3 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-primary"></i> Movimientos Recientes de Inventario (Kardex)</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle" id="table-movimientos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Stock Anterior</th>
+                                <th>Stock Nuevo</th>
+                                <th>Motivo</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 5: PEDIDOS & ENVÍOS ================= -->
+        <section id="sec-pedidos" style="display: none;">
+            <div class="card p-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div class="d-flex gap-2">
+                        <select id="filtro-pedido-estado" class="form-select" onchange="cargarPedidos()">
+                            <option value="">Todos los Estados</option>
+                            <option value="PENDIENTE">PENDIENTE</option>
+                            <option value="PAGADO">PAGADO</option>
+                            <option value="EN_PREPARACION">EN PREPARACIÓN</option>
+                            <option value="EN_TRANSITO">EN TRÁNSITO</option>
+                            <option value="ENTREGADO">ENTREGADO</option>
+                            <option value="CANCELADO">CANCELADO</option>
+                            <option value="RECHAZADO">RECHAZADO</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-pedidos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th>Total (S/)</th>
+                                <th>Estado Pedido</th>
+                                <th>Pago</th>
+                                <th>Envío</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 6: VALIDACIÓN DE PAGOS ================= -->
+        <section id="sec-pagos" style="display: none;">
+            <div class="card p-3">
+                <h5 class="fw-bold mb-3"><i class="bi bi-wallet2 text-success"></i> Pagos por Validación de Transferencia Bancaria</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-pagos-validacion">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID Pedido</th>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Método</th>
+                                <th>Monto (S/)</th>
+                                <th>Referencia Bancaria</th>
+                                <th>Estado Pago</th>
+                                <th class="text-end">Acción de Validación</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 7: REPORTES ================= -->
+        <section id="sec-reportes" style="display: none;">
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="card p-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <h5 class="fw-bold m-0">Generación y Exportación de Reportes</h5>
+                                <small class="text-muted">Exportación oficial a formatos XLSX (Excel) y PDF</small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-success" onclick="exportarReporte('inventario', 'excel')">
+                                    <i class="bi bi-file-earmark-excel"></i> Excel Inventario
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="exportarReporte('inventario', 'pdf')">
+                                    <i class="bi bi-file-earmark-pdf"></i> PDF Inventario
+                                </button>
+                                <button class="btn btn-outline-success" onclick="exportarReporte('ventas', 'excel')">
+                                    <i class="bi bi-file-earmark-excel"></i> Excel Ventas
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="exportarReporte('ventas', 'pdf')">
+                                    <i class="bi bi-file-earmark-pdf"></i> PDF Ventas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                    <div class="card p-3">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-table text-primary"></i> Reporte de Ventas Mensuales</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="table-reporte-ventas">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Pedidos</th>
+                                        <th>Ventas (S/)</th>
+                                        <th>Ticket Promedio</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="card p-3">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-trophy text-warning"></i> Productos Más Vendidos</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="table-reporte-top">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Categoría</th>
+                                        <th>Unidades</th>
+                                        <th>Ingresos (S/)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 8: USUARIOS ================= -->
+        <section id="sec-usuarios" style="display: none;">
+            <div class="card p-3">
+                <h5 class="fw-bold mb-3">Gestión de Usuarios y Roles</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-usuarios">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombres y Apellidos</th>
+                                <th>Correo</th>
+                                <th>Teléfono</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Registro</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: REGISTRAR / EDITAR PRODUCTO -->
+    <div class="modal fade" id="modalProducto" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formProducto" onsubmit="guardarProducto(event)">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="modalProductoTitle">Registrar Producto</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="prod-id">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">SKU *</label>
+                                <input type="text" id="prod-sku" class="form-control" placeholder="Ej: SOF-002" required>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Nombre del Mueble *</label>
+                                <input type="text" id="prod-nombre" class="form-control" placeholder="Ej: Sofá Chesterfield 3 Cuerpos" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Categoría *</label>
+                                <select id="prod-categoria" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Precio Unitario (S/) *</label>
+                                <input type="number" step="0.01" id="prod-precio" class="form-control" required min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Stock *</label>
+                                <input type="number" id="prod-stock" class="form-control" required min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Stock Mín. *</label>
+                                <input type="number" id="prod-stock-minimo" class="form-control" required min="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Material</label>
+                                <input type="text" id="prod-material" class="form-control" placeholder="Ej: Madera Tornillo, Cuero">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Dimensiones</label>
+                                <input type="text" id="prod-dimensiones" class="form-control" placeholder="Ej: 210 x 90 x 85 cm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">URL de Imagen</label>
+                                <input type="text" id="prod-imagen" class="form-control" placeholder="/img/img_sofa.jpg">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descripción</label>
+                                <textarea id="prod-descripcion" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR / EDITAR CATEGORÍA -->
+    <div class="modal fade" id="modalCategoria" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formCategoria" onsubmit="guardarCategoria(event)">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="modalCategoriaTitle">Nueva Categoría</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="cat-id">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre *</label>
+                            <input type="text" id="cat-nombre" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea id="cat-descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Categoría</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR ENTRADA / AJUSTE INVENTARIO -->
+    <div class="modal fade" id="modalAjuste" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formAjuste" onsubmit="guardarAjuste(event)">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Registrar Movimiento de Stock</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Producto *</label>
+                            <select id="ajuste-producto" class="form-select" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tipo de Operación *</label>
+                            <select id="ajuste-tipo" class="form-select" required>
+                                <option value="ENTRADA">Entrada de Fabricación / Compra (+ Cantidad)</option>
+                                <option value="AJUSTE">Ajuste de Conteo Físico (Fijar Nuevo Total)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cantidad *</label>
+                            <input type="number" id="ajuste-cantidad" class="form-control" required min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Motivo *</label>
+                            <input type="text" id="ajuste-motivo" class="form-control" placeholder="Ej: Fabricación de lote N° 45 finalizada" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Registrar Movimiento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DETALLE DE PEDIDO Y GESTIÓN DE ENVÍO -->
+    <div class="modal fade" id="modalPedido" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="modalPedidoTitle">Detalle del Pedido</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalPedidoContent">
+                    <!-- Dinámico -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script del Panel Administrador -->
+    <script>
+        const API_BASE = '/api';
+        let modalProductoBS, modalCategoriaBS, modalAjusteBS, modalPedidoBS;
+        let chartVentasInstance = null;
+        let chartInventarioInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            modalProductoBS = new bootstrap.Modal(document.getElementById('modalProducto'));
+            modalCategoriaBS = new bootstrap.Modal(document.getElementById('modalCategoria'));
+            modalAjusteBS = new bootstrap.Modal(document.getElementById('modalAjuste'));
+            modalPedidoBS = new bootstrap.Modal(document.getElementById('modalPedido'));
+
+            cargarDashboard();
+            cargarCategoriasSelect();
+        });
+
+        function showToast(message, isError = false) {
+            const toastEl = document.getElementById('liveToast');
+            const toastBody = document.getElementById('toastMessage');
+            toastBody.textContent = message;
+            toastEl.className = 'toast align-items-center border-0 ' + (isError ? 'text-bg-danger' : 'text-bg-primary');
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+
+            document.querySelectorAll('#sidebar .nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`#sidebar a[onclick*="${sectionId}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            const titles = {
+                'sec-dashboard': 'Dashboard Gerencial',
+                'sec-productos': 'Catálogo de Productos',
+                'sec-categorias': 'Gestión de Categorías',
+                'sec-inventario': 'Control de Inventario y Kardex',
+                'sec-pedidos': 'Gestión de Pedidos y Logística',
+                'sec-pagos': 'Validación de Pagos',
+                'sec-reportes': 'Reportes y Analítica',
+                'sec-usuarios': 'Usuarios y Roles'
+            };
+            document.getElementById('section-title').textContent = titles[sectionId] || 'Panel de Administración';
+
+            if (sectionId === 'sec-dashboard') cargarDashboard();
+            if (sectionId === 'sec-productos') cargarProductos();
+            if (sectionId === 'sec-categorias') cargarCategorias();
+            if (sectionId === 'sec-inventario') cargarInventario();
+            if (sectionId === 'sec-pedidos') cargarPedidos();
+            if (sectionId === 'sec-pagos') cargarPagosValidacion();
+            if (sectionId === 'sec-reportes') cargarReportes();
+            if (sectionId === 'sec-usuarios') cargarUsuarios();
+        }
+
+        function refrescarDatosActuales() {
+            const visibleSec = Array.from(document.querySelectorAll('main > section')).find(s => s.style.display !== 'none');
+            if (visibleSec) showSection(visibleSec.id);
+        }
+
+        // ================= SECCIÓN 1: DASHBOARD =================
+        async function cargarDashboard() {
+            try {
+                const resKpi = await fetch(`${API_BASE}/admin/reportes/dashboard`);
+                const kpis = await resKpi.json();
+                document.getElementById('kpi-ventas').textContent = 'S/ ' + (kpis.totalVentasMes || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 });
+                document.getElementById('kpi-pedidos').textContent = kpis.pedidosPendientes || 0;
+                document.getElementById('kpi-stock-alerta').textContent = kpis.productosBajoStock || 0;
+                document.getElementById('kpi-total-prod').textContent = kpis.totalProductos || 0;
+
+                // Alertas de stock en dashboard
+                const resAlertas = await fetch(`${API_BASE}/admin/inventario/alertas`);
+                const alertas = await resAlertas.json();
+                const tbody = document.querySelector('#table-alertas-dashboard tbody');
+                tbody.innerHTML = '';
+                if (alertas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-success py-3"><i class="bi bi-check-circle"></i> Todos los productos cuentan con stock óptimo</td></tr>';
+                } else {
+                    alertas.forEach(p => {
+                        const tr = document.createElement('tr');
+                        const badgeColor = p.stock === 0 ? 'bg-danger' : 'bg-warning text-dark';
+                        const badgeText = p.stock === 0 ? 'AGOTADO' : 'STOCK BAJO';
+                        tr.innerHTML = `
+                            <td class="fw-bold">${p.sku}</td>
+                            <td>${p.nombre}</td>
+                            <td>${p.categoria.nombre}</td>
+                            <td class="fw-bold text-danger">${p.stock}</td>
+                            <td>${p.stockMinimo}</td>
+                            <td><span class="badge ${badgeColor}">${badgeText}</span></td>
+                            <td><button class="btn btn-sm btn-outline-success" onclick="abrirModalAjusteConProd(${p.idProducto})">Reponer</button></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // Cargar gráficos
+                cargarGraficosDashboard(alertas.length, kpis.totalProductos - alertas.length);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function cargarGraficosDashboard(bajoStockCount, optimoCount) {
+            try {
+                const resVentas = await fetch(`${API_BASE}/admin/reportes/ventas`);
+                const ventasData = await resVentas.json();
+
+                const labels = ventasData.map(v => v.mes);
+                const montos = ventasData.map(v => v.ventas);
+
+                if (labels.length === 0) {
+                    labels.push('Mes Actual');
+                    montos.push(3200);
+                }
+
+                const ctxVentas = document.getElementById('chartVentas').getContext('2d');
+                if (chartVentasInstance) chartVentasInstance.destroy();
+                chartVentasInstance = new Chart(ctxVentas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Ventas (S/)',
+                            data: montos,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                const ctxInv = document.getElementById('chartInventario').getContext('2d');
+                if (chartInventarioInstance) chartInventarioInstance.destroy();
+                chartInventarioInstance = new Chart(ctxInv, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Stock Óptimo', 'Alerta / Agotado'],
+                        datasets: [{
+                            data: [Math.max(0, optimoCount), bajoStockCount],
+                            backgroundColor: ['#10b981', '#ef4444']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ================= SECCIÓN 2: PRODUCTOS =================
+        async function cargarProductos() {
+            const termino = document.getElementById('filtro-prod-termino').value.trim();
+            const catId = document.getElementById('filtro-prod-categoria').value;
+            let url = `${API_BASE}/admin/productos?`;
+            if (termino) url += `termino=${encodeURIComponent(termino)}&`;
+            if (catId) url += `categoriaId=${catId}&`;
+
+            const res = await fetch(url);
+            const productos = await res.json();
+            const tbody = document.querySelector('#table-productos tbody');
+            tbody.innerHTML = '';
+
+            productos.forEach(p => {
+                const tr = document.createElement('tr');
+                const imgUrl = p.urlImagen || '/img/img_sofa.jpg';
+                tr.innerHTML = `
+                    <td><img src="${imgUrl}" class="product-thumb" alt="${p.nombre}" onerror="this.src='/img/img_sofa.jpg'"></td>
+                    <td class="fw-bold">${p.sku}</td>
+                    <td>${p.nombre}</td>
+                    <td>${p.categoria.nombre}</td>
+                    <td class="text-success fw-bold">S/ ${p.precio.toFixed(2)}</td>
+                    <td class="fw-bold ${p.stock <= p.stockMinimo ? 'text-danger' : 'text-dark'}">${p.stock}</td>
+                    <td>${p.stockMinimo}</td>
+                    <td>
+                        <span class="badge ${p.estado ? 'bg-success' : 'bg-secondary'}">${p.estado ? 'Activo' : 'Inactivo'}</span>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editarProducto(${p.idProducto})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm ${p.estado ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="toggleEstadoProducto(${p.idProducto}, ${!p.estado})">
+                            <i class="bi ${p.estado ? 'bi-eye-slash' : 'bi-eye'}"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function cargarCategoriasSelect() {
+            const res = await fetch(`${API_BASE}/admin/categorias?soloActivas=true`);
+            const categorias = await res.json();
+
+            const selectFiltro = document.getElementById('filtro-prod-categoria');
+            selectFiltro.innerHTML = '<option value="">Todas las categorías</option>';
+
+            const selectModal = document.getElementById('prod-categoria');
+            selectModal.innerHTML = '';
+
+            categorias.forEach(c => {
+                selectFiltro.innerHTML += `<option value="${c.idCategoria}">${c.nombre}</option>`;
+                selectModal.innerHTML += `<option value="${c.idCategoria}">${c.nombre}</option>`;
+            });
+        }
+
+        function abrirModalProducto() {
+            document.getElementById('formProducto').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modalProductoTitle').textContent = 'Registrar Producto';
+            modalProductoBS.show();
+        }
+
+        async function editarProducto(id) {
+            const res = await fetch(`${API_BASE}/admin/productos/${id}`);
+            const p = await res.json();
+            document.getElementById('prod-id').value = p.idProducto;
+            document.getElementById('prod-sku').value = p.sku;
+            document.getElementById('prod-nombre').value = p.nombre;
+            document.getElementById('prod-categoria').value = p.categoria.idCategoria;
+            document.getElementById('prod-precio').value = p.precio;
+            document.getElementById('prod-stock').value = p.stock;
+            document.getElementById('prod-stock-minimo').value = p.stockMinimo;
+            document.getElementById('prod-material').value = p.material || '';
+            document.getElementById('prod-dimensiones').value = p.dimensiones || '';
+            document.getElementById('prod-imagen').value = p.urlImagen || '';
+            document.getElementById('prod-descripcion').value = p.descripcion || '';
+            document.getElementById('modalProductoTitle').textContent = 'Editar Producto';
+            modalProductoBS.show();
+        }
+
+        async function guardarProducto(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const dto = {
+                sku: document.getElementById('prod-sku').value.trim(),
+                nombre: document.getElementById('prod-nombre').value.trim(),
+                idCategoria: parseInt(document.getElementById('prod-categoria').value),
+                precio: parseFloat(document.getElementById('prod-precio').value),
+                stock: parseInt(document.getElementById('prod-stock').value),
+                stockMinimo: parseInt(document.getElementById('prod-stock-minimo').value),
+                material: document.getElementById('prod-material').value.trim(),
+                dimensiones: document.getElementById('prod-dimensiones').value.trim(),
+                urlImagen: document.getElementById('prod-imagen').value.trim(),
+                descripcion: document.getElementById('prod-descripcion').value.trim(),
+                estado: true
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/admin/productos/${id}` : `${API_BASE}/admin/productos`;
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+
+            if (res.ok) {
+                modalProductoBS.hide();
+                showToast(id ? 'Producto actualizado correctamente' : 'Producto registrado con éxito');
+                cargarProductos();
+            } else {
+                const err = await res.json();
+                showToast(err.message || 'Error al guardar el producto', true);
+            }
+        }
+
+        async function toggleEstadoProducto(id, nuevoEstado) {
+            const res = await fetch(`${API_BASE}/admin/productos/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (res.ok) {
+                showToast('Estado del producto actualizado');
+                cargarProductos();
+            }
+        }
+
+        // ================= SECCIÓN 3: CATEGORÍAS =================
+        async function cargarCategorias() {
+            const res = await fetch(`${API_BASE}/admin/categorias`);
+            const categorias = await res.json();
+            const tbody = document.querySelector('#table-categorias tbody');
+            tbody.innerHTML = '';
+            categorias.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${c.idCategoria}</td>
+                    <td class="fw-bold">${c.nombre}</td>
+                    <td><code>${c.slug}</code></td>
+                    <td>${c.descripcion || '-'}</td>
+                    <td><span class="badge ${c.estado ? 'bg-success' : 'bg-secondary'}">${c.estado ? 'Activo' : 'Inactivo'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editarCategoria(${c.idCategoria}, '${c.nombre}', '${c.descripcion || ''}')"><i class="bi bi-pencil"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function abrirModalCategoria() {
+            document.getElementById('formCategoria').reset();
+            document.getElementById('cat-id').value = '';
+            document.getElementById('modalCategoriaTitle').textContent = 'Nueva Categoría';
+            modalCategoriaBS.show();
+        }
+
+        function editarCategoria(id, nombre, desc) {
+            document.getElementById('cat-id').value = id;
+            document.getElementById('cat-nombre').value = nombre;
+            document.getElementById('cat-descripcion').value = desc;
+            document.getElementById('modalCategoriaTitle').textContent = 'Editar Categoría';
+            modalCategoriaBS.show();
+        }
+
+        async function guardarCategoria(e) {
+            e.preventDefault();
+            const id = document.getElementById('cat-id').value;
+            const dto = {
+                nombre: document.getElementById('cat-nombre').value.trim(),
+                descripcion: document.getElementById('cat-descripcion').value.trim()
+            };
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/admin/categorias/${id}` : `${API_BASE}/admin/categorias`;
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+
+            if (res.ok) {
+                modalCategoriaBS.hide();
+                showToast('Categoría guardada correctamente');
+                cargarCategorias();
+                cargarCategoriasSelect();
+            } else {
+                const err = await res.json();
+                showToast(err.message || 'Error al guardar categoría', true);
+            }
+        }
+
+        // ================= SECCIÓN 4: INVENTARIO =================
+        async function cargarInventario() {
+            const res = await fetch(`${API_BASE}/admin/inventario/movimientos`);
+            const movs = await res.json();
+            const tbody = document.querySelector('#table-movimientos tbody');
+            tbody.innerHTML = '';
+            if (movs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No hay movimientos registrados en el kardex aún.</td></tr>';
+            } else {
+                movs.forEach(m => {
+                    const tr = document.createElement('tr');
+                    const badgeClass = m.tipo === 'ENTRADA' ? 'bg-success' : (m.tipo === 'SALIDA' ? 'bg-danger' : 'bg-primary');
+                    tr.innerHTML = `
+                        <td>${new Date(m.fecha).toLocaleString('es-PE')}</td>
+                        <td class="fw-bold">${m.producto.nombre} <small class="text-muted">(${m.producto.sku})</small></td>
+                        <td><span class="badge ${badgeClass}">${m.tipo}</span></td>
+                        <td class="fw-bold">${m.cantidad > 0 ? '+' + m.cantidad : m.cantidad}</td>
+                        <td>${m.stockAnterior}</td>
+                        <td class="fw-bold text-dark">${m.stockNuevo}</td>
+                        <td>${m.motivo}</td>
+                        <td>${m.usuario ? m.usuario.nombres : 'Sistema'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        async function abrirModalAjuste() {
+            const res = await fetch(`${API_BASE}/admin/productos`);
+            const prods = await res.json();
+            const sel = document.getElementById('ajuste-producto');
+            sel.innerHTML = '';
+            prods.forEach(p => {
+                sel.innerHTML += `<option value="${p.idProducto}">${p.sku} — ${p.nombre} (Stock actual: ${p.stock})</option>`;
+            });
+            document.getElementById('formAjuste').reset();
+            modalAjusteBS.show();
+        }
+
+        function abrirModalAjusteConProd(prodId) {
+            abrirModalAjuste().then(() => {
+                document.getElementById('ajuste-producto').value = prodId;
+            });
+        }
+
+        async function guardarAjuste(e) {
+            e.preventDefault();
+            const dto = {
+                idProducto: parseInt(document.getElementById('ajuste-producto').value),
+                tipo: document.getElementById('ajuste-tipo').value,
+                cantidad: parseInt(document.getElementById('ajuste-cantidad').value),
+                motivo: document.getElementById('ajuste-motivo').value.trim()
+            };
+
+            const res = await fetch(`${API_BASE}/admin/inventario/ajustes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+
+            if (res.ok) {
+                modalAjusteBS.hide();
+                showToast('Movimiento de inventario registrado correctamente');
+                cargarInventario();
+            } else {
+                const err = await res.json();
+                showToast(err.message || 'Error al registrar ajuste', true);
+            }
+        }
+
+        // ================= SECCIÓN 5: PEDIDOS & ENVÍOS =================
+        async function cargarPedidos() {
+            const estado = document.getElementById('filtro-pedido-estado').value;
+            let url = `${API_BASE}/admin/pedidos`;
+            if (estado) url += `?estado=${estado}`;
+
+            const res = await fetch(url);
+            const pedidos = await res.json();
+            const tbody = document.querySelector('#table-pedidos tbody');
+            tbody.innerHTML = '';
+
+            if (pedidos.length === 0) {
+                tbody.innerHTML =                     '<tr><td colspan="8" class="text-center text-muted py-3">No se encontraron pedidos con los filtros aplicados.</td></tr>';
+                return;
+            }
+
+            pedidos.forEach(p => {
+                const tr = document.createElement('tr');
+                const badgePedido = getBadgePedido(p.estado);
+                const badgePago = p.pago ? (p.pago.estado === 'APROBADO' ? 'bg-success' : (p.pago.estado === 'PENDIENTE' ? 'bg-warning text-dark' : 'bg-danger')) : 'bg-secondary';
+                const badgeEnvio = p.envio ? (p.envio.estado === 'ENTREGADO' ? 'bg-success' : (p.envio.estado === 'EN_TRANSITO' ? 'bg-info text-dark' : 'bg-warning text-dark')) : 'bg-secondary';
+
+                tr.innerHTML = `
+                    <td class="fw-bold">${p.codigo}</td>
+                    <td>${p.usuario.nombres} ${p.usuario.apellidos}</td>
+                    <td>${new Date(p.fechaPedido).toLocaleDateString('es-PE')}</td>
+                    <td class="fw-bold text-success">S/ ${p.total.toFixed(2)}</td>
+                    <td><span class="badge ${badgePedido}">${p.estado}</span></td>
+                    <td><span class="badge ${badgePago}">${p.pago ? p.pago.estado : 'N/A'}</span></td>
+                    <td><span class="badge ${badgeEnvio}">${p.envio ? p.envio.estado : 'N/A'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="verDetallePedido(${p.idPedido})">
+                            <i class="bi bi-eye"></i> Detalle
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function getBadgePedido(estado) {
+            switch(estado) {
+                case 'PAGADO': return 'bg-success';
+                case 'PENDIENTE': return 'bg-warning text-dark';
+                case 'EN_PREPARACION': return 'bg-primary';
+                case 'EN_TRANSITO': return 'bg-info text-dark';
+                case 'ENTREGADO': return 'bg-success';
+                case 'CANCELADO':
+                case 'RECHAZADO': return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        }
+
+        async function verDetallePedido(id) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/pedidos/${id}`);
+                if (!res.ok) {
+                    showToast('No se pudo cargar el detalle del pedido', true);
+                    return;
+                }
+                const p = await res.json();
+                const resHist = await fetch(`${API_BASE}/admin/pedidos/${id}/historial`);
+                const historial = resHist.ok ? await resHist.json() : [];
+
+            let itemsHtml = '';
+            if (p.detalles && p.detalles.length > 0) {
+                p.detalles.forEach(d => {
+                    itemsHtml += `
+                        <tr>
+                            <td>${d.nombreProducto}</td>
+                            <td class="text-center">${d.cantidad}</td>
+                            <td class="text-end">S/ ${d.precioUnitario.toFixed(2)}</td>
+                            <td class="text-end fw-bold">S/ ${d.subtotal.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            let historyHtml = '';
+            historial.forEach(h => {
+                historyHtml += `
+                    <li class="list-group-item d-flex justify-content-between align-items-start py-2">
+                        <div>
+                            <span class="badge bg-secondary me-2">${h.estadoNuevo}</span>
+                            <small>${h.comentario || 'Actualización de estado'}</small>
+                        </div>
+                        <small class="text-muted">${new Date(h.fecha).toLocaleString('es-PE')}</small>
+                    </li>
+                `;
+            });
+
+            let snapshotObj = {};
+            try {
+                snapshotObj = typeof p.direccionSnapshot === 'string' ? JSON.parse(p.direccionSnapshot) : (p.direccionSnapshot || {});
+            } catch(e) {}
+
+            const content = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold border-bottom pb-1">Información General</h6>
+                        <p class="m-0"><strong>Código:</strong> ${p.codigo}</p>
+                        <p class="m-0"><strong>Cliente:</strong> ${p.usuario.nombres} ${p.usuario.apellidos} (${p.usuario.correo})</p>
+                        <p class="m-0"><strong>Teléfono:</strong> ${p.usuario.telefono || '-'}</p>
+                        <p class="m-0"><strong>Fecha:</strong> ${new Date(p.fechaPedido).toLocaleString('es-PE')}</p>
+                        <p class="m-0"><strong>Observaciones:</strong> ${p.observaciones || 'Ninguna'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold border-bottom pb-1">Dirección de Despacho</h6>
+                        <p class="m-0"><strong>Destinatario:</strong> ${snapshotObj.destinatario || p.usuario.nombres}</p>
+                        <p class="m-0"><strong>Dirección:</strong> ${snapshotObj.direccion || '-'}</p>
+                        <p class="m-0"><strong>Contacto:</strong> ${snapshotObj.telefono || '-'}</p>
+                    </div>
+                    <div class="col-12">
+                        <h6 class="fw-bold border-bottom pb-1">Productos Comprados</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr><th>Producto</th><th class="text-center">Cant.</th><th class="text-end">Precio Unit.</th><th class="text-end">Subtotal</th></tr>
+                            </thead>
+                            <tbody>${itemsHtml}</tbody>
+                            <tfoot>
+                                <tr><th colspan="3" class="text-end">Subtotal:</th><th class="text-end">S/ ${p.subtotal.toFixed(2)}</th></tr>
+                                <tr><th colspan="3" class="text-end">Envío:</th><th class="text-end">S/ ${p.costoEnvio.toFixed(2)}</th></tr>
+                                <tr class="table-light"><th colspan="3" class="text-end">TOTAL:</th><th class="text-end text-success fs-6">S/ ${p.total.toFixed(2)}</th></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card p-3 bg-light">
+                            <h6 class="fw-bold mb-2">Estado del Pedido</h6>
+                            <div class="input-group mb-2">
+                                <select id="update-pedido-estado" class="form-select">
+                                    <option value="PENDIENTE" ${p.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
+                                    <option value="PAGADO" ${p.estado === 'PAGADO' ? 'selected' : ''}>PAGADO</option>
+                                    <option value="EN_PREPARACION" ${p.estado === 'EN_PREPARACION' ? 'selected' : ''}>EN PREPARACIÓN</option>
+                                    <option value="EN_TRANSITO" ${p.estado === 'EN_TRANSITO' ? 'selected' : ''}>EN TRÁNSITO</option>
+                                    <option value="ENTREGADO" ${p.estado === 'ENTREGADO' ? 'selected' : ''}>ENTREGADO</option>
+                                    <option value="CANCELADO" ${p.estado === 'CANCELADO' ? 'selected' : ''}>CANCELADO</option>
+                                </select>
+                            </div>
+                            <input type="text" id="update-pedido-comentario" class="form-control form-control-sm mb-2" placeholder="Comentario o motivo de cambio">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card p-3 bg-light">
+                            <h6 class="fw-bold mb-2">Estado del Envío</h6>
+                            <div class="input-group mb-2">
+                                <select id="update-envio-estado" class="form-select">
+                                    <option value="PENDIENTE" ${p.envio && p.envio.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
+                                    <option value="EN_TRANSITO" ${p.envio && p.envio.estado === 'EN_TRANSITO' ? 'selected' : ''}>EN TRÁNSITO</option>
+                                    <option value="ENTREGADO" ${p.envio && p.envio.estado === 'ENTREGADO' ? 'selected' : ''}>ENTREGADO</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small m-0">Transportista:</label>
+                                <input type="text" id="update-envio-transportista" class="form-control form-control-sm" value="${p.envio ? (p.envio.transportista || '') : ''}" placeholder="Ej: Olva Courier">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small m-0">Código Tracking:</label>
+                                <input type="text" id="update-envio-tracking" class="form-control form-control-sm" value="${p.envio ? (p.envio.tracking || '') : ''}" placeholder="Ej: TRK-9812">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary w-auto" onclick="guardarEstadoYEnvio(${p.idPedido})">
+                                <i class="bi bi-save"></i> Actualizar Estado y Envío
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <h6 class="fw-bold border-bottom pb-1">Historial y Trazabilidad de Estados</h6>
+                        <ul class="list-group list-group-flush">${historyHtml || '<li class="list-group-item text-muted">Sin historial previo</li>'}</ul>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalPedidoContent').innerHTML = content;
+            document.getElementById('modalPedidoTitle').textContent = `Pedido #${p.codigo}`;
+            modalPedidoBS.show();
+        } catch (e) {
+            console.error(e);
+            showToast('Error al cargar el detalle del pedido', true);
+        }
+    }
+
+    async function guardarEstadoYEnvio(id) {
+            const nuevoEstadoPedido = document.getElementById('update-pedido-estado').value;
+            const comentario = document.getElementById('update-pedido-comentario').value.trim();
+            const nuevoEstadoEnvio = document.getElementById('update-envio-estado').value;
+            const transportista = document.getElementById('update-envio-transportista').value.trim();
+            const tracking = document.getElementById('update-envio-tracking').value.trim();
+
+            try {
+                // Actualizar estado del pedido
+                const resEstado = await fetch(`${API_BASE}/admin/pedidos/${id}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevoEstado: nuevoEstadoPedido, comentario })
+                });
+
+                if (!resEstado.ok) {
+                    const err = await resEstado.json();
+                    showToast(err.message || 'Error al actualizar estado del pedido', true);
+                    return;
+                }
+
+                // Actualizar estado del envío
+                const dtoEnvio = {
+                    transportista: transportista,
+                    tracking: tracking,
+                    estado: nuevoEstadoEnvio
+                };
+                const resEnvio = await fetch(`${API_BASE}/admin/pedidos/${id}/envio`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dtoEnvio)
+                });
+
+                if (!resEnvio.ok) {
+                    const err = await resEnvio.json();
+                    showToast(err.message || 'Error al actualizar envío', true);
+                    return;
+                }
+
+                showToast('Estado del pedido y envío actualizados con éxito');
+                verDetallePedido(id);
+                cargarPedidos();
+            } catch (e) {
+                console.error(e);
+                showToast('Error al actualizar estado y envío', true);
+            }
+        }
+
+        // ================= SECCIÓN 6: VALIDACIÓN DE PAGOS =================
+        async function cargarPagosValidacion() {
+            const res = await fetch(`${API_BASE}/admin/pedidos`);
+            const pedidos = await res.json();
+            const tbody = document.querySelector('#table-pagos-validacion tbody');
+            tbody.innerHTML = '';
+
+            const pagosPendientes = pedidos.filter(p => p.pago && p.pago.estado === 'PENDIENTE');
+            if (pagosPendientes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-success py-3"><i class="bi bi-check-circle"></i> No hay transferencias bancarias pendientes de validación.</td></tr>';
+                return;
+            }
+
+            pagosPendientes.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.idPedido}</td>
+                    <td class="fw-bold">${p.codigo}</td>
+                    <td>${p.usuario.nombres} ${p.usuario.apellidos}</td>
+                    <td><span class="badge bg-secondary">${p.pago.metodo}</span></td>
+                    <td class="fw-bold text-success">S/ ${p.pago.monto.toFixed(2)}</td>
+                    <td><code>${p.pago.referencia || 'Sin referencia'}</code></td>
+                    <td><span class="badge bg-warning text-dark">PENDIENTE</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-success me-1" onclick="validarPago(${p.idPedido}, 'APROBADO')">
+                            <i class="bi bi-check-lg"></i> Aprobar
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="validarPago(${p.idPedido}, 'RECHAZADO')">
+                            <i class="bi bi-x-lg"></i> Rechazar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function validarPago(idPedido, estado) {
+            const comentario = prompt(`Ingrese una observación para la validación (${estado}):`, `Pago validado por administrador`);
+            if (comentario === null) return;
+
+            const res = await fetch(`${API_BASE}/admin/pagos/${idPedido}/validar`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado, comentario })
+            });
+
+            if (res.ok) {
+                showToast(`Pago marcado como ${estado} exitosamente`);
+                cargarPagosValidacion();
+            } else {
+                const err = await res.json();
+                showToast(err.message || 'Error al validar pago', true);
+            }
+        }
+
+        // ================= SECCIÓN 7: REPORTES =================
+        async function cargarReportes() {
+            try {
+                const resVentas = await fetch(`${API_BASE}/admin/reportes/ventas`);
+                const ventas = await resVentas.json();
+                const tbodyVentas = document.querySelector('#table-reporte-ventas tbody');
+                tbodyVentas.innerHTML = '';
+                if (ventas.length === 0) {
+                    tbodyVentas.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay registros de ventas consolidadas</td></tr>';
+                } else {
+                    ventas.forEach(v => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${v.mes}</td>
+                            <td>${v.pedidos}</td>
+                            <td class="fw-bold text-success">S/ ${v.ventas.toFixed(2)}</td>
+                            <td>S/ ${v.ticketPromedio.toFixed(2)}</td>
+                        `;
+                        tbodyVentas.appendChild(tr);
+                    });
+                }
+
+                const resTop = await fetch(`${API_BASE}/admin/reportes/top-productos`);
+                const top = await resTop.json();
+                const tbodyTop = document.querySelector('#table-reporte-top tbody');
+                tbodyTop.innerHTML = '';
+                if (top.length === 0) {
+                    tbodyTop.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay ventas registradas este mes</td></tr>';
+                } else {
+                    top.forEach(t => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="fw-bold">${t.nombre}</td>
+                            <td>${t.categoria}</td>
+                            <td class="text-center fw-bold">${t.unidadesVendidas}</td>
+                            <td class="text-end text-success fw-bold">S/ ${t.ingresos.toFixed(2)}</td>
+                        `;
+                        tbodyTop.appendChild(tr);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function exportarReporte(tipo, formato) {
+            window.location.href = `${API_BASE}/admin/reportes/${tipo}/export?formato=${formato}`;
+            showToast(`Descargando reporte de ${tipo} en formato ${formato.toUpperCase()}...`);
+        }
+
+        // ================= SECCIÓN 8: USUARIOS =================
+        async function cargarUsuarios() {
+            const res = await fetch(`${API_BASE}/admin/usuarios`);
+            const usuarios = await res.json();
+            const tbody = document.querySelector('#table-usuarios tbody');
+            tbody.innerHTML = '';
+            usuarios.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${u.idUsuario}</td>
+                    <td class="fw-bold">${u.nombres} ${u.apellidos}</td>
+                    <td>${u.correo}</td>
+                    <td>${u.telefono || '-'}</td>
+                    <td><span class="badge ${u.rol.nombreRol === 'ADMIN' ? 'bg-primary' : 'bg-info text-dark'}">${u.rol.nombreRol}</span></td>
+                    <td><span class="badge ${u.estado ? 'bg-success' : 'bg-secondary'}">${u.estado ? 'Activo' : 'Inactivo'}</span></td>
+                    <td>${new Date(u.fechaRegistro).toLocaleDateString('es-PE')}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm ${u.estado ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="toggleEstadoUsuario(${u.idUsuario}, ${!u.estado})">
+                            ${u.estado ? 'Desactivar' : 'Activar'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function toggleEstadoUsuario(id, nuevoEstado) {
+            const res = await fetch(`${API_BASE}/admin/usuarios/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (res.ok) {
+                showToast('Estado del usuario actualizado');
+                cargarUsuarios();
+            }
+        }
+
+        async function cerrarSesion() {
+            await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>
