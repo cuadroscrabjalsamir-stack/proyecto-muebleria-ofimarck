@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AdminViewController {
 
-    @GetMapping({"/", "/admin", "/admin/"})
+    @GetMapping({"/admin", "/admin/"})
     public String adminDashboard(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("USUARIO_LOGUEADO") == null) {
