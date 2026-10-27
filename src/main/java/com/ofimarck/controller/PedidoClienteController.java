@@ -1,6 +1,7 @@
 package com.ofimarck.controller;
 
 import com.ofimarck.dto.request.PedidoRequest;
+import com.ofimarck.dto.response.PedidoDetalleDTO;
 import com.ofimarck.dto.response.PedidoResponse;
 import com.ofimarck.service.PedidoClienteService;
 import jakarta.servlet.http.HttpSession;
@@ -56,6 +57,14 @@ public class PedidoClienteController {
             @RequestParam Integer idUsuario) {
         PedidoResponse pedido = pedidoClienteService.obtenerPedidoPorCodigo(codigo, idUsuario);
         return ResponseEntity.ok(pedido);
+    }
+
+    @GetMapping("/{id}/detalle")
+    public ResponseEntity<PedidoDetalleDTO> obtenerDetalle(
+            @PathVariable Long id,
+            @RequestParam Integer idUsuario) {
+        PedidoDetalleDTO detalle = pedidoClienteService.obtenerPedidoDetalle(id, idUsuario);
+        return ResponseEntity.ok(detalle);
     }
 
     @PostMapping("/{id}/pago")

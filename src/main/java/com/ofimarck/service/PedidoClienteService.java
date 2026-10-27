@@ -2,6 +2,7 @@ package com.ofimarck.service;
 
 import com.ofimarck.domain.*;
 import com.ofimarck.dto.request.PedidoRequest;
+import com.ofimarck.dto.response.PedidoDetalleDTO;
 import com.ofimarck.dto.response.PedidoResponse;
 import com.ofimarck.exception.BadRequestException;
 import com.ofimarck.exception.ResourceNotFoundException;
@@ -155,6 +156,68 @@ public class PedidoClienteService {
         }
 
         return toDto(pedido);
+    }
+
+    public PedidoDetalleDTO obtenerPedidoDetalle(Long idPedido, Integer idUsuario) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + idPedido));
+
+        if (!pedido.getUsuario().getIdUsuario().equals(idUsuario)) {
+            throw new BadRequestException("El pedido no pertenece al usuario autenticado");
+        }
+
+        PedidoDetalleDTO dto = new PedidoDetalleDTO();
+        dto.setIdPedido(pedido.getIdPedido());
+        dto.setCodigo(pedido.getCodigo());
+        dto.setFechaPedido(pedido.getFechaPedido());
+        dto.setSubtotal(pedido.getSubtotal());
+        dto.setCostoEnvio(pedido.getCostoEnvio());
+        dto.setTotal(pedido.getTotal());
+        dto.setEstado(pedido.getEstado());
+        dto.setObservaciones(pedido.getObservaciones());
+
+        if (pedido.getDireccionEnvio() != null) {
+            PedidoDetalleDTO.DireccionDTO dir = new PedidoDetalleDTO.DireccionDTO();
+            dir.setDestinatario(pedido.getDireccionEnvio().getDestinatario());
+            dir.setTelefono(pedido.getDireccionEnvio().getTelefono());
+            dir.setDepartamento(pedido.getDireccionEnvio().getDepartamento());
+            dir.setProvincia(pedido.getDireccionEnvio().getProvincia());
+            dir.setDistrito(pedido.getDireccionEnvio().getDistrito());
+            dir.setLineaDireccion(pedido.getDireccionEnvio().getLineaDireccion());
+            dir.setReferencia(pedido.getDireccionEnvio().getReferencia());
+            dto.setDireccion(dir);
+        }
+
+        if (pedido.getPago() != null) {
+            PedidoDetalleDTO.PagoDTO pago = new PedidoDetalleDTO.PagoDTO();
+            pago.setMetodo(pedido.getPago().getMetodo());
+            pago.setEstado(pedido.getPago().getEstado());
+            pago.setReferencia(pedido.getPago().getReferencia());
+            pago.setMonto(pedido.getPago().getMonto());
+            dto.setPago(pago);
+        }
+
+        if (pedido.getEnvio() != null) {
+            PedidoDetalleDTO.EnvioDTO envio = new PedidoDetalleDTO.EnvioDTO();
+            envio.setTransportista(pedido.getEnvio().getTransportista());
+            envio.setTracking(pedido.getEnvio().getTracking());
+            envio.setEstado(pedido.getEnvio().getEstado());
+            dto.setEnvio(envio);
+        }
+
+        List<PedidoDetalleDTO.ItemPedidoDTO> items = pedido.getDetalles().stream()
+                .map(d -> {
+                    PedidoDetalleDTO.ItemPedidoDTO item = new PedidoDetalleDTO.ItemPedidoDTO();
+                    item.setNombreProducto(d.getNombreProducto());
+                    item.setCantidad(d.getCantidad());
+                    item.setPrecioUnitario(d.getPrecioUnitario());
+                    item.setSubtotal(d.getSubtotal());
+                    return item;
+                })
+                .collect(Collectors.toList());
+        dto.setItems(items);
+
+        return dto;
     }
 
     private String buildDireccionSnapshot(DireccionEnvio direccion) {

@@ -1120,7 +1120,7 @@
             tbody.innerHTML = '';
 
             if (pedidos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No se encontraron pedidos con los filtros aplicados.</td></tr>';
+                tbody.innerHTML =                     '<tr><td colspan="8" class="text-center text-muted py-3">No se encontraron pedidos con los filtros aplicados.</td></tr>';
                 return;
             }
 
@@ -1128,7 +1128,6 @@
                 const tr = document.createElement('tr');
                 const badgePedido = getBadgePedido(p.estado);
                 const badgePago = p.pago ? (p.pago.estado === 'APROBADO' ? 'bg-success' : (p.pago.estado === 'PENDIENTE' ? 'bg-warning text-dark' : 'bg-danger')) : 'bg-secondary';
-                const badgeEnvio = p.envio ? (p.envio.estado === 'ENTREGADO' ? 'bg-success' : 'bg-info text-dark') : 'bg-secondary';
 
                 tr.innerHTML = `
                     <td class="fw-bold">${p.codigo}</td>
@@ -1231,7 +1230,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="card p-3 bg-light">
-                            <h6 class="fw-bold mb-2">Cambiar Estado del Pedido</h6>
+                            <h6 class="fw-bold mb-2">Estado del Pedido</h6>
                             <div class="input-group mb-2">
                                 <select id="update-pedido-estado" class="form-select">
                                     <option value="PENDIENTE" ${p.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
@@ -1241,14 +1240,20 @@
                                     <option value="ENTREGADO" ${p.estado === 'ENTREGADO' ? 'selected' : ''}>ENTREGADO</option>
                                     <option value="CANCELADO" ${p.estado === 'CANCELADO' ? 'selected' : ''}>CANCELADO</option>
                                 </select>
-                                <button class="btn btn-primary" onclick="guardarNuevoEstadoPedido(${p.idPedido})">Actualizar</button>
                             </div>
-                            <input type="text" id="update-pedido-comentario" class="form-control form-control-sm" placeholder="Comentario o motivo de cambio">
+                            <input type="text" id="update-pedido-comentario" class="form-control form-control-sm mb-2" placeholder="Comentario o motivo de cambio">
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="card p-3 bg-light">
-                            <h6 class="fw-bold mb-2">Logística de Envío</h6>
+                            <h6 class="fw-bold mb-2">Estado del Envío</h6>
+                            <div class="input-group mb-2">
+                                <select id="update-envio-estado" class="form-select">
+                                    <option value="PENDIENTE" ${p.envio && p.envio.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
+                                    <option value="EN_TRANSITO" ${p.envio && p.envio.estado === 'EN_TRANSITO' ? 'selected' : ''}>EN TRÁNSITO</option>
+                                    <option value="ENTREGADO" ${p.envio && p.envio.estado === 'ENTREGADO' ? 'selected' : ''}>ENTREGADO</option>
+                                </select>
+                            </div>
                             <div class="mb-2">
                                 <label class="form-label small m-0">Transportista:</label>
                                 <input type="text" id="update-envio-transportista" class="form-control form-control-sm" value="${p.envio ? (p.envio.transportista || '') : ''}" placeholder="Ej: Olva Courier">
@@ -1257,7 +1262,13 @@
                                 <label class="form-label small m-0">Código Tracking:</label>
                                 <input type="text" id="update-envio-tracking" class="form-control form-control-sm" value="${p.envio ? (p.envio.tracking || '') : ''}" placeholder="Ej: TRK-9812">
                             </div>
-                            <button class="btn btn-sm btn-outline-dark w-100" onclick="guardarEnvioPedido(${p.idPedido})">Guardar Datos de Envío</button>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary w-auto" onclick="guardarEstadoYEnvio(${p.idPedido})">
+                                <i class="bi bi-save"></i> Actualizar Estado y Envío
+                            </button>
                         </div>
                     </div>
                     <div class="col-12">
@@ -1272,41 +1283,51 @@
             modalPedidoBS.show();
         }
 
-        async function guardarNuevoEstadoPedido(id) {
-            const nuevoEstado = document.getElementById('update-pedido-estado').value;
+        async function guardarEstadoYEnvio(id) {
+            const nuevoEstadoPedido = document.getElementById('update-pedido-estado').value;
             const comentario = document.getElementById('update-pedido-comentario').value.trim();
+            const nuevoEstadoEnvio = document.getElementById('update-envio-estado').value;
+            const transportista = document.getElementById('update-envio-transportista').value.trim();
+            const tracking = document.getElementById('update-envio-tracking').value.trim();
 
-            const res = await fetch(`${API_BASE}/admin/pedidos/${id}/estado`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nuevoEstado, comentario })
-            });
+            try {
+                // Actualizar estado del pedido
+                const resEstado = await fetch(`${API_BASE}/admin/pedidos/${id}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevoEstado: nuevoEstadoPedido, comentario })
+                });
 
-            if (res.ok) {
-                showToast('Estado del pedido actualizado con éxito');
+                if (!resEstado.ok) {
+                    const err = await resEstado.json();
+                    showToast(err.message || 'Error al actualizar estado del pedido', true);
+                    return;
+                }
+
+                // Actualizar estado del envío
+                const dtoEnvio = {
+                    transportista: transportista,
+                    tracking: tracking,
+                    estado: nuevoEstadoEnvio
+                };
+                const resEnvio = await fetch(`${API_BASE}/admin/pedidos/${id}/envio`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dtoEnvio)
+                });
+
+                if (!resEnvio.ok) {
+                    const err = await resEnvio.json();
+                    showToast(err.message || 'Error al actualizar envío', true);
+                    return;
+                }
+
+                showToast('Estado del pedido y envío actualizados con éxito');
                 verDetallePedido(id);
                 cargarPedidos();
-            } else {
-                const err = await res.json();
-                showToast(err.message || 'Error al actualizar estado', true);
-            }
-        }
-
-        async function guardarEnvioPedido(id) {
-            const dto = {
-                transportista: document.getElementById('update-envio-transportista').value.trim(),
-                tracking: document.getElementById('update-envio-tracking').value.trim(),
-                estado: 'EN_TRANSITO'
-            };
-            const res = await fetch(`${API_BASE}/admin/pedidos/${id}/envio`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dto)
-            });
-            if (res.ok) {
-                showToast('Datos de envío actualizados con éxito');
-                verDetallePedido(id);
-                cargarPedidos();
+            } catch (e) {
+                console.error(e);
+                showToast('Error al actualizar estado y envío', true);
             }
         }
 
