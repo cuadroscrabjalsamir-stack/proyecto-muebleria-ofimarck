@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Cuenta — Mueblería Ofimarck</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --ofimarck-primary: #1e3a8a;
+            --ofimarck-secondary: #0f172a;
+            --ofimarck-accent: #d97706;
+            --ofimarck-bg: #f8fafc;
+        }
+        body {
+            background-color: var(--ofimarck-bg);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+        }
+        #sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #cbd5e1;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        #sidebar .nav-link {
+            color: #94a3b8;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0;
+            margin: 0.2rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
+            color: #ffffff;
+            background-color: rgba(255,255,255,0.1);
+        }
+        #sidebar .nav-link.active {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+        #content {
+            margin-left: 240px;
+            padding: 1.5rem 2rem;
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.07);
+        }
+        .product-card {
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-img-wrap {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .product-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .btn-add {
+            background: var(--ofimarck-primary);
+            border: none;
+        }
+        .btn-add:hover {
+            background: #174299;
+        }
+        .badge-pill {
+            padding: 0.35em 0.65em;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1090;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="sidebar">
+        <div class="p-3 border-bottom border-secondary d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam-fill text-warning fs-4"></i>
+            <div>
+                <h6 class="m-0 text-white fw-bold">Ofimarck</h6>
+                <small class="text-secondary">Mi Cuenta</small>
+            </div>
+        </div>
+        <div class="mt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showSection('sec-catalogo')">
+                        <i class="bi bi-box-seam"></i> Catálogo
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-carrito')">
+                        <i class="bi bi-cart3"></i> Carrito
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-pedidos')">
+                        <i class="bi bi-clock-history"></i> Mis Pedidos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-perfil')">
+                        <i class="bi bi-person"></i> Perfil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('sec-direcciones')">
+                        <i class="bi bi-geo-alt"></i> Mis Direcciones
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="p-3 mt-auto border-top border-secondary">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div class="text-truncate">
+                    <small class="d-block text-white fw-bold" th:text="${usuario.nombres} + ' ' + ${usuario.apellidos}">Usuario</small>
+                    <small class="text-secondary" th:text="${usuario.correo}">correo@ejemplo.com</small>
+                </div>
+            </div>
+            <a href="/logout" class="btn btn-sm btn-outline-danger w-100">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </a>
+        </div>
+    </nav>
+
+    <main id="content">
+        <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+            <div>
+                <h3 class="fw-bold text-dark m-0" id="section-title">Catálogo de Productos</h3>
+                <small class="text-muted">Mueblería Ofimarck — Tienda en línea</small>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" onclick="refrescar()">
+                <i class="bi bi-arrow-clockwise"></i> Actualizar
+            </button>
+        </header>
+
+        <div class="toast-container">
+            <div id="liveToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body" id="toastMessage">Acción realizada.</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATÁLOGO -->
+        <section id="sec-catalogo">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">Productos Disponibles</h5>
+                <input type="text" id="filtro-catalogo" class="form-control" style="max-width:260px;" placeholder="Buscar productos..." oninput="cargarCatalogo()">
+            </div>
+            <div class="row g-4" id="grid-catalogo">
+                <!-- Tarjetas inyectadas por JS -->
+            </div>
+        </section>
+
+        <!-- CARRITO -->
+        <section id="sec-carrito" style="display:none;">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Mi Carrito de Compras</h5>
+                    <span class="badge bg-primary" id="contador-carrito">0</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-carrito">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th>Imagen</th>
+                                <th>Precio (S/)</th>
+                                <th>Cantidad</th>
+                                <th>Subtotal (S/)</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-carrito"></tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <strong>Total: S/ <span id="total-carrito">0.00</span></strong>
+                    </div>
+                    <button class="btn btn-primary" onclick="abrirModalPago()">
+                        <i class="bi bi-credit-card"></i> Pagar Pedido
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PEDIDOS -->
+        <section id="sec-pedidos" style="display:none;">
+            <div class="card p-3">
+                <h5 class="fw-bold mb-3">Mis Pedidos</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-pedidos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Fecha</th>
+                                <th>Total (S/)</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-pedidos"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- DIRECCIONES -->
+        <section id="sec-direcciones" style="display:none;">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Mis Direcciones de Envío</h5>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDireccion">
+                        <i class="bi bi-plus"></i> Agregar Dirección
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="table-direcciones">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Alias</th>
+                                <th>Destinatario</th>
+                                <th>Dirección</th>
+                                <th>Distrito</th>
+                                <th>Teléfono</th>
+                                <th>Predeterminada</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-direcciones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PERFIL -->
+        <section id="sec-perfil" style="display:none;">
+            <div class="card p-4">
+                <h5 class="fw-bold mb-3">Mi Perfil</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombres</label>
+                        <input type="text" class="form-control" th:value="${usuario.nombres}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Apellidos</label>
+                        <input type="text" class="form-control" th:value="${usuario.apellidos}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Correo</label>
+                        <input type="email" class="form-control" th:value="${usuario.correo}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Teléfono</label>
+                        <input type="text" class="form-control" th:value="${usuario.telefono}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Rol</label>
+                        <input type="text" class="form-control" th:text="${usuario.rol.nombreRol}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Estado</label>
+                        <input type="text" class="form-control" th:text="${usuario.estado ? 'Activo' : 'Inactivo'}" readonly>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: PAGO DE PEDIDO -->
+    <div class="modal fade" id="modalPago" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formPago" onsubmit="realizarPedido(event)">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Pagar Pedido</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Método de pago <span class="text-danger">*</span></label>
+                            <select id="pago-metodo" class="form-select" required>
+                                <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                                <option value="YAPE">Yape</option>
+                                <option value="PLIN">Plin</option>
+                                <option value="TARJETA">Tarjeta de Crédito/Débito</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Referencia / Nro. de operación <span class="text-danger">*</span></label>
+                            <input type="text" id="pago-referencia" class="form-control" placeholder="Ej: TRX-123456" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">Dirección de envío <span class="text-danger">*</span></label>
+                                <a href="javascript:void(0)" class="small text-decoration-none" onclick="abrirModalNuevaDireccionDesdePago()">+ Nueva dirección</a>
+                            </div>
+                            <select id="pago-direccion" class="form-select" required>
+                                <option value="">Seleccione una dirección</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            El costo de envío es S/ 15.00 y se suma al total del carrito.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Confirmar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const API_BASE = '/api';
+        const ID_USUARIO = /*[[${usuario.idUsuario}]]*/ 0;
+        const NOMBRE_USUARIO = /*[[${usuario.nombres}]]*/ '';
+        let catalogo = [];
+        let modalPagoBS, modalDireccionBS;
+        let direcciones = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            modalPagoBS = new bootstrap.Modal(document.getElementById('modalPago'));
+            modalDireccionBS = new bootstrap.Modal(document.getElementById('modalDireccion'));
+            cargarCatalogo();
+            cargarCarrito();
+            cargarPedidos();
+            cargarDirecciones();
+        });
+
+        function showToast(msg, isError=false){
+            const el = document.getElementById('liveToast');
+            const body = document.getElementById('toastMessage');
+            body.textContent = msg;
+            el.className = 'toast align-items-center border-0 ' + (isError ? 'text-bg-danger' : 'text-bg-primary');
+            new bootstrap.Toast(el).show();
+        }
+
+        function showSection(id){
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+            document.querySelectorAll('#sidebar .nav-link').forEach(l => l.classList.remove('active'));
+            const link = document.querySelector('#sidebar a[onclick*="'+id+'"]');
+            if(link) link.classList.add('active');
+            const titulos = {
+                'sec-catalogo': 'Catálogo de Productos',
+                'sec-carrito': 'Mi Carrito',
+                'sec-pedidos': 'Mis Pedidos',
+                'sec-perfil': 'Mi Perfil',
+                'sec-direcciones': 'Mis Direcciones'
+            };
+            document.getElementById('section-title').textContent = titulos[id] || 'Mi Cuenta';
+            if (id === 'sec-direcciones') cargarDirecciones();
+        }
+
+        function refrescar(){
+            const visible = Array.from(document.querySelectorAll('main > section')).find(s => s.style.display !== 'none');
+            if(visible) showSection(visible.id);
+        }
+
+        // ================= CATÁLOGO =================
+        async function cargarCatalogo(){
+            const termino = document.getElementById('filtro-catalogo').value.trim();
+            let url = API_BASE + '/productos';
+            if(termino) url += '?termino=' + encodeURIComponent(termino);
+            try {
+                const res = await fetch(url);
+                if(!res.ok) throw new Error('Error cargando catálogo');
+                catalogo = await res.json();
+                renderCatalogo();
+            } catch(e){ console.error(e); showToast('Error al cargar el catálogo', true); }
+        }
+
+        function renderCatalogo(){
+            const grid = document.getElementById('grid-catalogo');
+            grid.innerHTML = '';
+            const termino = document.getElementById('filtro-catalogo').value.trim().toLowerCase();
+            const filtrados = catalogo.filter(p =>
+                (p.nombre || '').toLowerCase().includes(termino)
+            );
+            if(filtrados.length === 0){
+                grid.innerHTML = '<div class="col-12"><div class="alert alert-info">No se encontraron productos.</div></div>';
+                return;
+            }
+            filtrados.forEach(p => {
+                const col = document.createElement('div');
+                col.className = 'col-12 col-sm-6 col-lg-4 col-xl-3';
+                const img = p.urlImagen || '/img/img_sofa.jpg';
+                col.innerHTML = `
+                    <div class="card product-card h-100">
+                        <div class="product-img-wrap">
+                            <img src="${img}" class="product-img" alt="${p.nombre}" onerror="this.src='/img/img_sofa.jpg'">
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="fw-bold text-dark">${p.nombre}</h6>
+                            <p class="text-muted small flex-grow-1">${p.descripcion || ''}</p>
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <strong class="text-success">S/ ${Number(p.precio || 0).toFixed(2)}</strong>
+                                <button class="btn btn-add btn-primary btn-sm" onclick="agregarAlCarrito(${p.idProducto})">
+                                    <i class="bi bi-cart-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+            });
+        }
+
+        async function agregarAlCarrito(idProducto){
+            try {
+                const res = await fetch(API_BASE + '/carrito/items', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ idProducto: idProducto, cantidad: 1 })
+                });
+                if(res.ok){
+                    showToast('Producto agregado al carrito');
+                    cargarCarrito();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.message || 'No se pudo agregar al carrito', true);
+                }
+            } catch(e){
+                showToast('Error al agregar al carrito', true);
+            }
+        }
+
+        // ================= CARRITO =================
+        async function cargarCarrito(){
+            try {
+                const res = await fetch(API_BASE + '/carrito');
+                if(!res.ok) throw new Error('Error cargando carrito');
+                const carrito = await res.json();
+                const tbody = document.getElementById('tbody-carrito');
+                tbody.innerHTML = '';
+                const contador = document.getElementById('contador-carrito');
+                let total = 0;
+                const items = carrito.items || [];
+                contador.textContent = carrito.totalItems || 0;
+                items.forEach(item => {
+                    const subtotal = Number(item.precioUnitario || 0) * Number(item.cantidad || 0);
+                    total += subtotal;
+                    const tr = document.createElement('tr');
+                    const img = item.urlImagen || '/img/img_sofa.jpg';
+                    tr.innerHTML = `
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${img}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;me-2" onerror="this.src='/img/img_sofa.jpg'">
+                                ${item.nombre || 'Producto'}
+                            </div>
+                        </td>
+                        <td>S/ ${Number(item.precioUnitario || 0).toFixed(2)}</td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm" value="${item.cantidad}" min="1"
+                                onchange="actualizarCantidad(${item.idProducto}, this.value)">
+                        </td>
+                        <td>S/ ${subtotal.toFixed(2)}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarItem(${item.idProducto})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('total-carrito').textContent = total.toFixed(2);
+            } catch(e){
+                console.error(e);
+                showToast('Error al cargar el carrito', true);
+            }
+        }
+
+        async function actualizarCantidad(idProducto, cantidad){
+            if(cantidad < 1) cantidad = 1;
+            try {
+                await fetch(API_BASE + '/carrito/items/' + idProducto + '?cantidad=' + cantidad, { method: 'PUT' });
+                cargarCarrito();
+            } catch(e){ showToast('Error al actualizar', true); }
+        }
+
+        async function eliminarItem(idProducto){
+            try {
+                await fetch(API_BASE + '/carrito/items/' + idProducto, { method: 'DELETE' });
+                cargarCarrito();
+            } catch(e){ showToast('Error al eliminar', true); }
+        }
+
+        // ================= PEDIDOS =================
+        async function cargarPedidos(){
+            try {
+                const res = await fetch(API_BASE + '/pedidos?idUsuario=' + ID_USUARIO);
+                if(!res.ok) throw new Error('Error cargando pedidos');
+                const pedidos = await res.json();
+                const tbody = document.getElementById('tbody-pedidos');
+                tbody.innerHTML = '';
+                if(pedidos.length === 0){
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No tienes pedidos registrados.</td></tr>';
+                    return;
+                }
+                pedidos.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="fw-bold">${p.codigoPedido || p.idPedido}</td>
+                        <td>${p.fechaPedido || '-'}</td>
+                        <td>S/ ${Number(p.total || 0).toFixed(2)}</td>
+                        <td><span class="badge badge-pill bg-info">${p.estado || 'Pendiente'}</span></td>
+                        <td class="text-end"><button class="btn btn-sm btn-outline-primary">Ver detalle</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch(e){ console.error(e); showToast('Error al cargar pedidos', true); }
+        }
+
+        // ================= DIRECCIONES =================
+        let reabrirPagoDespuesDeDireccion = false;
+
+        function abrirModalNuevaDireccionDesdePago(){
+            reabrirPagoDespuesDeDireccion = true;
+            modalPagoBS.hide();
+            modalDireccionBS.show();
+        }
+
+        async function cargarDirecciones(){
+            try {
+                const res = await fetch(API_BASE + '/direcciones?idUsuario=' + ID_USUARIO);
+                if(!res.ok) return;
+                direcciones = await res.json();
+                const sel = document.getElementById('pago-direccion');
+                sel.innerHTML = '<option value="">Seleccione una dirección</option>';
+                const tbody = document.getElementById('tbody-direcciones');
+                tbody.innerHTML = '';
+                if(direcciones.length === 0){
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No tiene direcciones registradas.</td></tr>';
+                    sel.innerHTML = '<option value="">No tiene direcciones registradas</option>';
+                } else {
+                    let predeterminadaId = '';
+                    direcciones.forEach(d => {
+                        const id = (d.idDireccion !== undefined && d.idDireccion !== null) ? d.idDireccion : d.idDireccionEnvio;
+                        if(d.predeterminada) predeterminadaId = id;
+                        const labelAlias = d.alias ? `[${d.alias}] ` : '';
+                        sel.innerHTML += `<option value="${id}">${labelAlias}${d.destinatario} — ${d.lineaDireccion}, ${d.distrito}</option>`;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${d.alias || '-'}</td>
+                            <td>${d.destinatario}</td>
+                            <td>${d.lineaDireccion}</td>
+                            <td>${d.distrito}</td>
+                            <td>${d.telefono}</td>
+                            <td><span class="badge ${d.predeterminada ? 'bg-success' : 'bg-secondary'}">${d.predeterminada ? 'Sí' : 'No'}</span></td>
+                            <td class="text-end"></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Seleccionar por defecto la predeterminada o la única existente
+                    if(predeterminadaId){
+                        sel.value = predeterminadaId;
+                    } else if(direcciones.length === 1){
+                        sel.value = (direcciones[0].idDireccion !== undefined && direcciones[0].idDireccion !== null) 
+                            ? direcciones[0].idDireccion 
+                            : direcciones[0].idDireccionEnvio;
+                    }
+                }
+            } catch(e){ console.error(e); }
+        }
+
+        async function crearDireccion(e){
+            e.preventDefault();
+            const dto = {
+                alias: document.getElementById('dir-alias').value.trim(),
+                destinatario: document.getElementById('dir-destinatario').value.trim(),
+                telefono: document.getElementById('dir-telefono').value.trim(),
+                departamento: document.getElementById('dir-departamento').value.trim(),
+                provincia: document.getElementById('dir-provincia').value.trim(),
+                distrito: document.getElementById('dir-distrito').value.trim(),
+                lineaDireccion: document.getElementById('dir-linea').value.trim(),
+                referencia: document.getElementById('dir-referencia').value.trim(),
+                codigoPostal: document.getElementById('dir-codigo-postal').value.trim(),
+                predeterminada: document.getElementById('dir-predeterminada').checked
+            };
+            try {
+                const res = await fetch(API_BASE + '/direcciones?idUsuario=' + ID_USUARIO, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(dto)
+                });
+                if(res.ok){
+                    const nuevaDir = await res.json().catch(() => ({}));
+                    showToast('Dirección guardada correctamente');
+                    modalDireccionBS.hide();
+                    document.getElementById('formDireccion').reset();
+                    await cargarDirecciones();
+                    if(reabrirPagoDespuesDeDireccion){
+                        reabrirPagoDespuesDeDireccion = false;
+                        if(nuevaDir && nuevaDir.id){
+                            document.getElementById('pago-direccion').value = nuevaDir.id;
+                        }
+                        modalPagoBS.show();
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.message || 'Error al guardar dirección', true);
+                }
+            } catch(err){
+                showToast('Error al guardar dirección', true);
+            }
+        }
+
+        // ================= PAGO / PEDIDO =================
+        async function abrirModalPago(){
+            const items = document.querySelectorAll('#tbody-carrito tr');
+            if(items.length === 0){
+                showToast('El carrito está vacío', true);
+                return;
+            }
+            if(ID_USUARIO <= 0){
+                showToast('Sesión inválida. Inicie sesión nuevamente', true);
+                return;
+            }
+            await cargarDirecciones();
+            modalPagoBS.show();
+        }
+
+        async function realizarPedido(e){
+            e.preventDefault();
+            if(ID_USUARIO <= 0){
+                showToast('Sesión inválida. Inicie sesión nuevamente', true);
+                return;
+            }
+            const metodo = document.getElementById('pago-metodo').value;
+            const referencia = document.getElementById('pago-referencia').value.trim();
+            const idDireccion = document.getElementById('pago-direccion').value;
+            const idDireccionNum = parseInt(idDireccion);
+
+            if(!metodo){
+                showToast('Debe seleccionar un método de pago', true);
+                return;
+            }
+            if(!referencia){
+                showToast('Debe ingresar la referencia o comprobante de pago', true);
+                return;
+            }
+            if(!idDireccion || isNaN(idDireccionNum) || idDireccionNum <= 0){
+                showToast('Debe seleccionar una dirección de envío válida', true);
+                return;
+            }
+
+            try {
+                const res = await fetch(API_BASE + '/pedidos?idUsuario=' + ID_USUARIO, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        idDireccionEnvio: idDireccionNum,
+                        metodoPago: metodo,
+                        referencia: referencia
+                    })
+                });
+                if(res.ok){
+                    const data = await res.json();
+                    showToast('Pedido #' + (data.codigoPedido || data.idPedido) + ' creado correctamente');
+                    modalPagoBS.hide();
+                    document.getElementById('formPago').reset();
+                    await fetch(API_BASE + '/carrito', { method: 'DELETE' });
+                    cargarCarrito();
+                    cargarPedidos();
+                    showSection('sec-pedidos');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.message || 'No se pudo crear el pedido', true);
+                }
+            } catch(e){
+                showToast('Error al crear el pedido', true);
+            }
+        }
+    </script>
+
+    <!-- MODAL: CREAR DIRECCIÓN -->
+    <div class="modal fade" id="modalDireccion" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formDireccion" onsubmit="crearDireccion(event)">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Nueva Dirección de Envío</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Alias <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-alias" class="form-control" placeholder="Ej: Casa" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Destinatario <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-destinatario" class="form-control" placeholder="Nombres y apellidos" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Teléfono <span class="text-danger">*</span></label>
+                                <input type="tel" id="dir-telefono" class="form-control" placeholder="999 888 777" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Departamento <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-departamento" class="form-control" placeholder="Lima" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Provincia <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-provincia" class="form-control" placeholder="Lima" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Distrito <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-distrito" class="form-control" placeholder="Miraflores" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Dirección <span class="text-danger">*</span></label>
+                                <input type="text" id="dir-linea" class="form-control" placeholder="Av. Arequipa 123" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Referencia</label>
+                                <input type="text" id="dir-referencia" class="form-control" placeholder="Frente al parque">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Código Postal</label>
+                                <input type="text" id="dir-codigo-postal" class="form-control" placeholder="15074">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dir-predeterminada">
+                                    <label class="form-check-label" for="dir-predeterminada">Marcar como dirección predeterminada</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Dirección</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,182 @@
+package com.ofimarck.service;
+
+import com.ofimarck.domain.*;
+import com.ofimarck.dto.request.PedidoRequest;
+import com.ofimarck.dto.response.PedidoResponse;
+import com.ofimarck.exception.BadRequestException;
+import com.ofimarck.exception.ResourceNotFoundException;
+import com.ofimarck.repository.*;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class PedidoClienteService {
+
+    private final PedidoRepository pedidoRepository;
+    private final DireccionEnvioRepository direccionRepository;
+    private final ProductoRepository productoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final CarritoService carritoService;
+
+    public PedidoClienteService(PedidoRepository pedidoRepository,
+                                DireccionEnvioRepository direccionRepository,
+                                ProductoRepository productoRepository,
+                                UsuarioRepository usuarioRepository,
+                                CarritoService carritoService) {
+        this.pedidoRepository = pedidoRepository;
+        this.direccionRepository = direccionRepository;
+        this.productoRepository = productoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.carritoService = carritoService;
+    }
+
+    @Transactional
+    public PedidoResponse crearPedido(Integer idUsuario, PedidoRequest request, HttpSession session) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
+
+        DireccionEnvio direccion = direccionRepository.findById(request.getIdDireccionEnvio())
+                .orElseThrow(() -> new ResourceNotFoundException("Dirección de envío no encontrada"));
+
+        if (!direccion.getUsuario().getIdUsuario().equals(idUsuario)) {
+            throw new BadRequestException("La dirección de envío no pertenece al usuario autenticado");
+        }
+
+        Carrito carrito = (Carrito) session.getAttribute("CARRITO");
+        if (carrito == null || carrito.isEmpty()) {
+            throw new BadRequestException("El carrito está vacío");
+        }
+
+        // Validar stock de cada item antes de crear el pedido
+        for (CarritoItem item : carrito.getItems()) {
+            Producto producto = productoRepository.findById(item.getIdProducto())
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + item.getIdProducto()));
+            if (!producto.getEstado()) {
+                throw new BadRequestException("El producto está inactivo: " + producto.getNombre());
+            }
+            if (producto.getStock() < item.getCantidad()) {
+                throw new BadRequestException("Stock insuficiente para: " + producto.getNombre());
+            }
+        }
+
+        // Calcular totales
+        BigDecimal subtotal = carrito.getTotal();
+        BigDecimal costoEnvio = BigDecimal.valueOf(15.00);
+        BigDecimal total = subtotal.add(costoEnvio);
+
+        // Crear pedido
+        Pedido pedido = new Pedido();
+        pedido.setUsuario(usuario);
+        pedido.setDireccionEnvio(direccion);
+        pedido.setDireccionSnapshot(buildDireccionSnapshot(direccion));
+        pedido.setSubtotal(subtotal);
+        pedido.setCostoEnvio(costoEnvio);
+        pedido.setTotal(total);
+        pedido.setEstado("PENDIENTE");
+        pedido.setObservaciones("Pedido desde carrito de compras");
+        pedido = pedidoRepository.save(pedido);
+
+        // Crear detalles
+        for (CarritoItem item : carrito.getItems()) {
+            Producto producto = productoRepository.findById(item.getIdProducto())
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + item.getIdProducto()));
+
+            DetallePedido detalle = new DetallePedido();
+            detalle.setPedido(pedido);
+            detalle.setProducto(producto);
+            detalle.setNombreProducto(producto.getNombre());
+            detalle.setCantidad(item.getCantidad());
+            detalle.setPrecioUnitario(item.getPrecioUnitario());
+            detalle.setSubtotal(item.getSubtotal());
+            // detalleRepository is not injected but we can save via cascade from Pedido
+            pedido.getDetalles().add(detalle);
+        }
+
+        // Crear pago pendiente
+        Pago pago = new Pago();
+        pago.setPedido(pedido);
+        pago.setMetodo(request.getMetodoPago());
+        pago.setEstado("PENDIENTE");
+        pago.setMonto(total);
+        pago.setReferencia(request.getReferencia());
+        pedido.setPago(pago);
+
+        // Crear envío pendiente
+        Envio envio = new Envio();
+        envio.setPedido(pedido);
+        envio.setEstado("PENDIENTE");
+        envio.setCosto(costoEnvio);
+        pedido.setEnvio(envio);
+
+        pedidoRepository.save(pedido);
+
+        // Limpiar carrito después de crear el pedido
+        carritoService.limpiarCarrito(session);
+
+        return new PedidoResponse(
+                pedido.getIdPedido(),
+                pedido.getCodigo(),
+                pedido.getTotal(),
+                pedido.getEstado(),
+                pedido.getFechaPedido()
+        );
+    }
+
+    public List<PedidoResponse> listarPedidos(Integer idUsuario) {
+        List<Pedido> pedidos = pedidoRepository.findByUsuario_IdUsuarioOrderByFechaPedidoDesc(idUsuario);
+        return pedidos.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public PedidoResponse obtenerPedido(Long idPedido, Integer idUsuario) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + idPedido));
+
+        if (!pedido.getUsuario().getIdUsuario().equals(idUsuario)) {
+            throw new BadRequestException("El pedido no pertenece al usuario autenticado");
+        }
+
+        return toDto(pedido);
+    }
+
+    public PedidoResponse obtenerPedidoPorCodigo(String codigo, Integer idUsuario) {
+        Pedido pedido = pedidoRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con código: " + codigo));
+
+        if (!pedido.getUsuario().getIdUsuario().equals(idUsuario)) {
+            throw new BadRequestException("El pedido no pertenece al usuario autenticado");
+        }
+
+        return toDto(pedido);
+    }
+
+    private String buildDireccionSnapshot(DireccionEnvio direccion) {
+        return String.format(
+                "{\"destinatario\":\"%s\",\"telefono\":\"%s\",\"departamento\":\"%s\",\"provincia\":\"%s\",\"distrito\":\"%s\",\"direccion\":\"%s\",\"referencia\":\"%s\"}",
+                direccion.getDestinatario(),
+                direccion.getTelefono(),
+                direccion.getDepartamento(),
+                direccion.getProvincia(),
+                direccion.getDistrito(),
+                direccion.getLineaDireccion(),
+                direccion.getReferencia() != null ? direccion.getReferencia() : ""
+        );
+    }
+
+    private PedidoResponse toDto(Pedido pedido) {
+        return new PedidoResponse(
+                pedido.getIdPedido(),
+                pedido.getCodigo(),
+                pedido.getTotal(),
+                pedido.getEstado(),
+                pedido.getFechaPedido()
+        );
+    }
+}
