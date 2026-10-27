@@ -1,8 +1,11 @@
 package com.ofimarck.controller;
 
 import com.ofimarck.domain.Usuario;
+import com.ofimarck.dto.request.ForgotPasswordRequest;
 import com.ofimarck.dto.request.LoginRequest;
+import com.ofimarck.dto.request.ResetPasswordRequest;
 import com.ofimarck.dto.response.LoginResponse;
+import com.ofimarck.service.PasswordResetService;
 import com.ofimarck.service.UsuarioService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -19,9 +22,12 @@ import java.util.Optional;
 public class AuthController {
 
     private final UsuarioService usuarioService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(UsuarioService usuarioService) {
+    public AuthController(UsuarioService usuarioService,
+                          PasswordResetService passwordResetService) {
         this.usuarioService = usuarioService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/login")
@@ -74,5 +80,17 @@ public class AuthController {
             session.invalidate();
         }
         return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada correctamente"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.solicitarRestablecimiento(request.getCorreo());
+        return ResponseEntity.ok(Map.of("mensaje", "Si el correo existe, se ha enviado un token de restablecimiento"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.restablecerContrasena(request);
+        return ResponseEntity.ok(Map.of("mensaje", "Contraseña restablecida con éxito"));
     }
 }
