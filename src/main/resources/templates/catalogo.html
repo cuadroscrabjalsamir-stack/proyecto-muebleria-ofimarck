@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Catálogo - Mueblería Ofimarck</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link th:href="@{/css/style.css}" rel="stylesheet"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/catalogo}">Mueblería Ofimarck</a>
+        <div class="d-flex">
+            <a th:href="@{/carrito}" class="btn btn-outline-light me-2">🛒 Carrito</a>
+            <a th:href="@{/login}" class="btn btn-light">Iniciar sesión</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h2>Catálogo de Productos</h2>
+
+    <form class="row g-3 mb-4" method="get" action="@{/catalogo}">
+        <div class="col-md-3">
+            <select name="categoriaId" class="form-select">
+                <option value="">Todas las categorías</option>
+                <option th:each="cat : ${categorias}" th:value="${cat.idCategoria}"
+                        th:selected="${categoriaSeleccionada == cat.idCategoria}"
+                        th:text="${cat.nombre}"></option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="estado" class="form-select">
+                <option value="">Todos</option>
+                <option value="true" th:selected="${estadoSeleccionado == true}">Activos</option>
+                <option value="false" th:selected="${estadoSeleccionado == false}">Inactivos</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input name="termino" type="text" class="form-control" placeholder="Buscar por nombre o SKU"
+                   th:value="${terminoBusqueda}"/>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Buscar</button>
+        </div>
+    </form>
+
+    <div class="row">
+        <div th:each="producto : ${productos}" class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title" th:text="${producto.nombre}">Producto</h5>
+                    <p class="card-text" th:text="${producto.descripcion}">Descripción</p>
+                    <p class="fw-bold" th:text="|S/ ${producto.precio}|">Precio</p>
+                    <p class="text-muted small" th:text="|SKU: ${producto.sku} - Stock: ${producto.stock}|">SKU</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a th:href="@{/carrito/agregar(id=${producto.idProducto})}" class="btn btn-outline-success w-100">
+                        Agregar al carrito
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(productos)}} class="alert alert-info">
+        No se encontraron productos con los filtros seleccionados.
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

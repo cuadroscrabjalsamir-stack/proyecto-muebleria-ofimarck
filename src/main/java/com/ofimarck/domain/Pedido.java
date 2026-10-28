@@ -2,7 +2,9 @@ package com.ofimarck.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -20,6 +22,10 @@ public class Pedido {
     @Column(name = "id_pedido")
     private Long idPedido;
 
+    // El código lo genera el trigger trg_pedido_codigo (V3).
+    // @Generated hace que Hibernate lo recupere tras el INSERT y lo excluya
+    // de los UPDATE, evitando enviar codigo = NULL.
+    @Generated(event = EventType.INSERT)
     @Column(name = "codigo", nullable = false, unique = true, length = 25)
     private String codigo;
 

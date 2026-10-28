@@ -1,6 +1,6 @@
 -- V2__seed.sql
 -- Datos semilla para pruebas del sistema Mueblería Ofimarck
--- No incluye usuarios ni contraseñas
+-- Incluye roles, categorías, productos y usuarios de prueba con contraseñas BCrypt
 
 SET search_path TO muebleria, public;
 
@@ -9,6 +9,24 @@ INSERT INTO rol (nombre_rol, descripcion) VALUES
     ('CLIENTE', 'Cliente del portal web'),
     ('ADMIN', 'Administrador del panel de gestión')
 ON CONFLICT (nombre_rol) DO NOTHING;
+
+-- Sincronizar secuencia de rol (por si acaso)
+SELECT setval('rol_id_rol_seq', (SELECT MAX(id_rol) FROM rol));
+
+-- Insertar usuarios de prueba
+-- Hashes BCrypt generados con BCryptPasswordEncoder de Spring Security.
+-- Contraseñas: admin123 (admin) y cliente123 (cliente)
+INSERT INTO usuario (nombres, apellidos, correo, telefono, password_hash, id_rol, estado)
+SELECT 'Administrador', 'Ofimarck', 'admin@ofimarck.pe', '987654321',
+       '$2a$12$EG6YV1gljb6ji4FxsD2d/uRq2No4N0QjmqmR5R7d2RobvJry8B6Me',
+       (SELECT id_rol FROM rol WHERE nombre_rol = 'ADMIN'), TRUE
+WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE correo = 'admin@ofimarck.pe');
+
+INSERT INTO usuario (nombres, apellidos, correo, telefono, password_hash, id_rol, estado)
+SELECT 'Carlos', 'Mendoza', 'carlos.mendoza@gmail.com', '991234567',
+       '$2a$12$92PNR.nI06TY0/FzsU6GKexouqzryssg1IBEsQ1Gpl563W6Q71qEa',
+       (SELECT id_rol FROM rol WHERE nombre_rol = 'CLIENTE'), TRUE
+WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE correo = 'carlos.mendoza@gmail.com');
 
 -- Insertar categorías
 INSERT INTO categoria (nombre, slug, descripcion) VALUES
